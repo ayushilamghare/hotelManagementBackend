@@ -69,6 +69,30 @@ exports.loginUser = async (req, res) => {
     }
 }
 
+// Get all registered users
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select("-password");
+
+        if (!users || users.length === 0) {
+            return res.status(404).json({
+                message: "No users found"
+            });
+        }
+
+        res.status(200).json({
+            message: "All registered users retrieved successfully",
+            count: users.length,
+            users
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 exports.getHome = async(req, res) =>{
    res.status(200).json({
     message: "Hi this is Home page"

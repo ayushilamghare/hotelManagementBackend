@@ -1,5 +1,18 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Payment = require('../models/Payment');
+
+// Initialize Stripe lazily when needed
+let stripe = null;
+
+const getStripe = () => {
+    if (!stripe) {
+        const stripeKey = process.env.STRIPE_SECRET_KEY;
+        if (!stripeKey) {
+            throw new Error('STRIPE_SECRET_KEY is not configured in environment variables');
+        }
+        stripe = require('stripe')(stripeKey);
+    }
+    return stripe;
+};
 
 // Generate transaction ID
 const generateTransactionId = () => {
@@ -9,13 +22,14 @@ const generateTransactionId = () => {
 // CARD/STRIPE PAYMENT
 const createPaymentIntent = async (req, res) => {
     try {
+        const stripeClient = getStripe();
         const { amount, roomName, guestName, guestEmail } = req.body;
 
         if (!amount || !roomName || !guestName || !guestEmail) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        const paymentIntent = await stripeClient.paymentIntents.create({
             amount: Math.round(amount),
             currency: 'inr',
             metadata: {
@@ -36,9 +50,10 @@ const createPaymentIntent = async (req, res) => {
 
 const retrievePaymentIntent = async (req, res) => {
     try {
+        const stripeClient = getStripe();
         const { paymentIntentId } = req.params;
 
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
 
         res.status(200).json({
             status: paymentIntent.status,
